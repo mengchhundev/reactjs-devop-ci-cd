@@ -35,7 +35,8 @@ jobs:
           docker logout
   deploy-gcp:
     needs: build-push
-    runs-on: GCP_EVN
+    runs-on: ubuntu-latest
+    environment: GCP_EVN
     steps:
       - name: Checkout code
         uses: action/checkout@v3
