@@ -42,7 +42,7 @@ jobs:
         uses: action/checkout@v3
       - name: Use with SHA
         run: |
-        echo "TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
+          echo "TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
       - name: Deploy via SSH 
         uses: appleboy/ssh-action@v1.0.0
         with: 
