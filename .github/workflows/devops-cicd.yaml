@@ -49,11 +49,12 @@ jobs:
           host: ${{ secrets.IP }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.PRIVATE_KEY }}
-          envs: TAG
+          envs: TAG,IMAGE_NAME
           script: |
             docker stop my-app || true
             docker rm my-app || true
-            docker run -dp 8000:8080 --name my-app chhundev/${env.IMAGE_NAME}:${env.TAG}
+            docker run -dp 8000:8080 --name my-app "chhundev/${{ IMAGE_NAME }}:${{ TAG:0:8 }}"
+            
 
              
 
