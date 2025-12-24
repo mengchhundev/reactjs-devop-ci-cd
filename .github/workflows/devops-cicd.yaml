@@ -46,9 +46,9 @@ jobs:
       - name: Deploy via SSH 
         uses: appleboy/ssh-action@v1.0.0
         with: 
-          host: ${{ secrets.GCP_IP }}
-          username: ${{ secrets.GCP_USER }}
-          key: ${{ secrets.GCP_PRIVATE_KEY }}
+          host: ${{ secrets.IP }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.PRIVATE_KEY }}
           envs: TAG
           script: |
             docker stop my-app || true
