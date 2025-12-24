@@ -33,3 +33,31 @@ jobs:
         if: always()
         run: |
           docker logout
+
+  deploy-gcp:
+    needs: build-push
+    runs-on: GCP_EVN
+    steps:
+      - name: Checkout code
+        uses: action/checkout@v3
+      - name: Use with SHA
+        run: |
+        echo "TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
+      - name: Deploy via SSH 
+        uses: appleboy/ssh-action@v1.0.0
+        with: 
+          host: ${{ secrets.GCP_IP }}
+          username: ${{ secrets.GCP_USER }}
+          key: ${{ secrets.GCP_PRIVATE_KEY }}
+          envs: TAG
+          script: |
+            docker stop my-app || true
+            docker rm my-app || true
+            docker run -dp 8000:8080 \
+            --name my-app \
+            "chhun/${{ env.IMAGE_NAME}}:${{ env.TAG }}"
+
+             
+
+
+ 
