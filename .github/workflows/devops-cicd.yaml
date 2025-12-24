@@ -53,7 +53,7 @@ jobs:
           script: |
             docker stop my-app || true
             docker rm my-app || true
-            docker run -dp 8000:8080 --name my-app chhundev/${IMAGE_NAME}:${TAG}
+            docker run -dp 8000:8080 --name my-app chhundev/${env.IMAGE_NAME}:${env.TAG}
 
              
 
