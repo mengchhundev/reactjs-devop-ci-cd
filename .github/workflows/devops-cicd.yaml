@@ -53,9 +53,7 @@ jobs:
           script: |
             docker stop my-app || true
             docker rm my-app || true
-            docker run -dp 8000:8080 \
-            --name my-app \
-            "chhun/${{ env.IMAGE_NAME}}:${{ env.TAG }}"
+            docker run -dp 8000:8080 --name my-app chhun/${IMAGE_NAME}:${TAG}
 
              
 
