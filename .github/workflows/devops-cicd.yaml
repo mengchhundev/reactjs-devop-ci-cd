@@ -33,7 +33,6 @@ jobs:
         if: always()
         run: |
           docker logout
-
   deploy-gcp:
     needs: build-push
     runs-on: GCP_EVN
