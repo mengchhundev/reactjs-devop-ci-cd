@@ -30,11 +30,6 @@ function App() {
     setIsValidated(value) // get value from navbar 
   }
 
-  const handleLoginCallBackW = (value) => {
-    // setIsValidated(value) // get value from navbar 
-  }
-  const name = "chhun";
-  
 
 
   return (
