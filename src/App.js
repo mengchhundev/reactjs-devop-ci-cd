@@ -24,11 +24,22 @@ function App() {
   const [isValidated, setIsValidated] = useState(
     localStorage.getItem("tokens") ? true : false
   )
+
+  const [isValidated1, setIsValidated1] = useState(
+    localStorage.getItem("tokens") ? true : false
+  )
+   
    
   
   const handleLoginCallBack = (value) => {
     setIsValidated(value) // get value from navbar 
   }
+  const handleLoginCallBack3 = (value) => {
+    // setIsValidated(value) // get value from navbar 
+  }
+
+  let user="chhun"
+  const pass="0934949344"
 
 
 
