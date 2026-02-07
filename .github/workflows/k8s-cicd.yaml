@@ -1,112 +1,73 @@
-# set condition for when to run the action files
-on:
-  push:
+# set condition for when to run the action files 
+on: 
+  push: 
     branches: ["master"]
-
-# build docker image, push dockerhub | update helm chart and push to Nexus
-env:
+# build docker image , push dockerhub
+env: 
   DOCKER_IMAGE_NAME: reactjs-devop-cicd
-  NEXUS_HELM_REPO_URL: https://nexus.next-step-go.online/repository/helm-hosted/
-  # Repo that contains the Helm chart (owner/repo). Override with vars.HELM_CHART_REPO if needed.
-  HELM_CHART_REPO: ${{ vars.HELM_CHART_REPO || 'keoKAY/first-helm-argo-repo-dev09' }}
-  # Path to the chart directory inside that repo (default: helm-reactjs). Override with vars.HELM_CHART_PATH.
-  HELM_CHART_PATH: ${{ vars.HELM_CHART_PATH || 'helm-reactjs' }}
-
-jobs:
-  ci-job:
-    runs-on: ubuntu-latest
+  HELM_REPO: keoKAY/first-helm-argo-repo-dev09
+jobs: 
+  ci-job: 
+    runs-on: ubuntu-latest 
     environment: DOCKER_ENV
-    steps:
-      - name: Checkout code
+    steps: 
+      - name: Checkout code 
         uses: actions/checkout@v3
-
-      - name: Set TAG to latest
-        run: |
-          echo "TAG=latest" >> $GITHUB_ENV
-
-      - name: Show the TAG
-        run: |
-          echo "TAG = ${{ env.TAG }}"
-
-      - name: Login to Dockerhub
-        run: |
-          echo "${{ secrets.PASSWORD }}" | docker login -u ${{ secrets.USERNAME }} --password-stdin
-
-      - name: Build and Tag
-        run: |
-          docker build -t ${{ secrets.USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ env.TAG }} .
-
-      - name: Push to Dockerhub
-        run: |
-          docker push ${{ secrets.USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ env.TAG }}
-
-      - name: Logout from Dockerhub
-        if: always()
-        run: |
-          docker logout
-
-  # Package Helm chart with new image tag and push to Nexus
-  cd-job:
-    needs: ci-job
-    runs-on: ubuntu-latest
-    environment: HELM_ENV
-    steps:
-      - name: Add Commit SHA to TAG env
+      - name: Using Commit SHA 
         run: |
           echo "TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
-
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: "v3.13.0"
-
-      - name: Install yq
+      - name: Show the SHA values 
         run: |
-          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-          chmod +x /usr/local/bin/yq
-
-      - name: Clone Helm chart repo
+          echo "TAG = ${{env.TAG }}"
+      - name: Login to Dockerhub 
         run: |
-          if [ -z "${{ env.HELM_CHART_REPO }}" ]; then
-            echo "::error::HELM_CHART_REPO is not set. Add it in Settings → Secrets and variables → Actions → Variables (e.g. owner/repo-name)"
-            exit 1
-          fi
-          git clone "https://${{ secrets.GIT_TOKEN }}@github.com/${{ env.HELM_CHART_REPO }}.git" helm_repo
-
-      - name: Update Helm chart image
+          echo "${{ secrets.PASSWORD }}" | docker login -u ${{secrets.USERNAME}} --password-stdin
+      - name: Build and Tag 
         run: |
-          CHART_PATH="${{ env.HELM_CHART_PATH }}"
-          [ -z "$CHART_PATH" ] && CHART_PATH="helm-reactjs"
-          CHART_DIR="${{ github.workspace }}/helm_repo/${CHART_PATH}"
-          if [ ! -d "$CHART_DIR" ]; then
-            echo "::error::Chart not found at ${CHART_PATH}. Repo contents:"
-            ls -la "${{ github.workspace }}/helm_repo"
-            exit 1
-          fi
-          echo "Update repository username/imagename"
-          yq -i ".image.repository=\"${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}\"" "$CHART_DIR/values.yaml"
-          echo "Update image tag"
-          yq -i ".image.tag=\"${{ env.TAG }}\"" "$CHART_DIR/values.yaml"
-          yq -i ".appVersion=\"${{ env.TAG }}\"" "$CHART_DIR/Chart.yaml"
-
-      - name: Package Helm chart
+          docker build -t ${{ secrets.USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{env.TAG }} .
+      - name: Push to Dockerhub 
         run: |
-          CHART_PATH="${{ env.HELM_CHART_PATH }}"
-          [ -z "$CHART_PATH" ] && CHART_PATH="helm-reactjs"
-          helm package "${{ github.workspace }}/helm_repo/${CHART_PATH}"
-
-      - name: Push Helm chart to Nexus
-        env:
-          NEXUS_URL: ${{ env.NEXUS_HELM_REPO_URL }}
-          NEXUS_USER: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASS: ${{ secrets.NEXUS_PASSWORD }}
-        run: |
-          CHART_FILE=$(ls *.tgz)
-          curl -f -u "${NEXUS_USER}:${NEXUS_PASS}" \
-            --upload-file "${CHART_FILE}" \
-            "${NEXUS_URL}/${CHART_FILE}"
-
-      - name: Clean up
+          docker push ${{ secrets.USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{env.TAG }}
+      - name: Logout from Dockerhub 
         if: always()
         run: |
+          docker logout 
+# update helm repo with new image
+  cd-job: 
+    needs: ci-job
+    runs-on: ubuntu-latest 
+    environment: HELM_ENV
+    steps: 
+      - name: Install yq command 
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+      - name: Add Commit SHA to TAG env 
+        run: |
+          echo "TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
+      
+      # clone the helm repo remporarily 
+      - name: Clone argocd repo 
+        run: | 
+          git clone https://github.com/${{ env.HELM_REPO }} helm_repo 
+      - name: Update Helm Chart 
+        run: |
+          cd helm_repo/reactjs-plants-chart
+
+          echo "Update repository username/imagename "
+
+          yq -i ".image.repository=\"${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME}}\"" values.yaml
+
+          echo "Update image tag "
+          yq -i ".image.tag=\"${{ env.TAG }}\"" values.yaml
+
+          git config --global user.email "username@example.com"
+          git config --global user.name "dummyname"
+          git add . 
+          git commit -m "Update helm to use image ${{ env.TAG }}"
+          
+          git push https://${{ secrets.GIT_TOKEN }}@github.com/${{ env.HELM_REPO }}
+      
+      - name: Clean up 
+        run: | 
           rm -rf helm_repo
