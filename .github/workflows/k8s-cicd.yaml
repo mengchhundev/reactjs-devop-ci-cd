@@ -7,6 +7,10 @@ on:
 env:
   DOCKER_IMAGE_NAME: reactjs-devop-cicd
   NEXUS_HELM_REPO_URL: https://nexus.next-step-go.online/repository/helm-hosted/
+  # Repo that contains the Helm chart (owner/repo). Use GIT_TOKEN secret if private.
+  HELM_CHART_REPO: ${{ vars.HELM_CHART_REPO }}
+  # Path to the chart directory inside that repo (e.g. helm-reactjs or reactjs-plants-chart)
+  HELM_CHART_PATH: ${{ vars.HELM_CHART_PATH }}
 
 jobs:
   ci-job:
@@ -47,9 +51,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: HELM_ENV
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
       - name: Add Commit SHA to TAG env
         run: |
           echo "TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
@@ -64,12 +65,18 @@ jobs:
           wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
+      - name: Clone Helm chart repo
+        run: |
+          git clone "https://${{ secrets.GIT_TOKEN }}@github.com/${{ env.HELM_CHART_REPO }}.git" helm_repo
+
       - name: Update Helm chart image
         run: |
-          CHART_DIR="${{ github.workspace }}/helm-reactjs"
+          CHART_PATH="${{ env.HELM_CHART_PATH }}"
+          [ -z "$CHART_PATH" ] && CHART_PATH="helm-reactjs"
+          CHART_DIR="${{ github.workspace }}/helm_repo/${CHART_PATH}"
           if [ ! -d "$CHART_DIR" ]; then
-            echo "::error::helm-reactjs not found. Workspace contents:"
-            ls -la "${{ github.workspace }}"
+            echo "::error::Chart not found at ${CHART_PATH}. Repo contents:"
+            ls -la "${{ github.workspace }}/helm_repo"
             exit 1
           fi
           echo "Update repository username/imagename"
@@ -80,7 +87,9 @@ jobs:
 
       - name: Package Helm chart
         run: |
-          helm package "${{ github.workspace }}/helm-reactjs"
+          CHART_PATH="${{ env.HELM_CHART_PATH }}"
+          [ -z "$CHART_PATH" ] && CHART_PATH="helm-reactjs"
+          helm package "${{ github.workspace }}/helm_repo/${CHART_PATH}"
 
       - name: Push Helm chart to Nexus
         env:
@@ -88,8 +97,12 @@ jobs:
           NEXUS_USER: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASS: ${{ secrets.NEXUS_PASSWORD }}
         run: |
-          CHART_FILE=$(ls helm-reactjs-*.tgz)
-          # Nexus Helm hosted repo: upload via curl
+          CHART_FILE=$(ls *.tgz)
           curl -f -u "${NEXUS_USER}:${NEXUS_PASS}" \
             --upload-file "${CHART_FILE}" \
             "${NEXUS_URL}/${CHART_FILE}"
+
+      - name: Clean up
+        if: always()
+        run: |
+          rm -rf helm_repo
