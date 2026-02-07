@@ -7,10 +7,10 @@ on:
 env:
   DOCKER_IMAGE_NAME: reactjs-devop-cicd
   NEXUS_HELM_REPO_URL: https://nexus.next-step-go.online/repository/helm-hosted/
-  # Repo that contains the Helm chart (owner/repo). Use GIT_TOKEN secret if private.
-  HELM_CHART_REPO: ${{ vars.HELM_CHART_REPO }}
-  # Path to the chart directory inside that repo (e.g. helm-reactjs or reactjs-plants-chart)
-  HELM_CHART_PATH: ${{ vars.HELM_CHART_PATH }}
+  # Repo that contains the Helm chart (owner/repo). Override with vars.HELM_CHART_REPO if needed.
+  HELM_CHART_REPO: ${{ vars.HELM_CHART_REPO || 'keoKAY/first-helm-argo-repo-dev09' }}
+  # Path to the chart directory inside that repo (default: helm-reactjs). Override with vars.HELM_CHART_PATH.
+  HELM_CHART_PATH: ${{ vars.HELM_CHART_PATH || 'helm-reactjs' }}
 
 jobs:
   ci-job:
@@ -67,6 +67,10 @@ jobs:
 
       - name: Clone Helm chart repo
         run: |
+          if [ -z "${{ env.HELM_CHART_REPO }}" ]; then
+            echo "::error::HELM_CHART_REPO is not set. Add it in Settings → Secrets and variables → Actions → Variables (e.g. owner/repo-name)"
+            exit 1
+          fi
           git clone "https://${{ secrets.GIT_TOKEN }}@github.com/${{ env.HELM_CHART_REPO }}.git" helm_repo
 
       - name: Update Helm chart image
