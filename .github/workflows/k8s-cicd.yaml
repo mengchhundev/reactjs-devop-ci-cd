@@ -66,16 +66,21 @@ jobs:
 
       - name: Update Helm chart image
         run: |
-          cd helm-reactjs
+          CHART_DIR="${{ github.workspace }}/helm-reactjs"
+          if [ ! -d "$CHART_DIR" ]; then
+            echo "::error::helm-reactjs not found. Workspace contents:"
+            ls -la "${{ github.workspace }}"
+            exit 1
+          fi
           echo "Update repository username/imagename"
-          yq -i ".image.repository=\"${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}\"" values.yaml
+          yq -i ".image.repository=\"${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}\"" "$CHART_DIR/values.yaml"
           echo "Update image tag"
-          yq -i ".image.tag=\"${{ env.TAG }}\"" values.yaml
-          yq -i ".appVersion=\"${{ env.TAG }}\"" Chart.yaml
+          yq -i ".image.tag=\"${{ env.TAG }}\"" "$CHART_DIR/values.yaml"
+          yq -i ".appVersion=\"${{ env.TAG }}\"" "$CHART_DIR/Chart.yaml"
 
       - name: Package Helm chart
         run: |
-          helm package helm-reactjs/
+          helm package "${{ github.workspace }}/helm-reactjs"
 
       - name: Push Helm chart to Nexus
         env:
